@@ -1,13 +1,10 @@
 import { useState } from "react";
 import { useProcessStore } from "../stores/process-store";
-import { useMetricsStore } from "../stores/metrics-store";
 import { useAuthStore } from "../stores/auth-store";
 import { ConnectionDot } from "./connection-banner";
 import { PM2ActionsMenu } from "./pm2-actions-menu";
 import { ThemeToggle } from "./theme-toggle";
-import { CpuCores } from "./cpu-cores";
-import { formatBytes } from "../lib/utils";
-import { Activity, HardDrive, Zap, Plus, LogOut, Layers, Star, ExternalLink, X } from "lucide-react";
+import { Activity, Zap, Plus, LogOut, Layers, Star, ExternalLink, X } from "lucide-react";
 import { isTelegramWebApp } from "../lib/telegram";
 
 export function DashboardHeader({
@@ -25,9 +22,6 @@ export function DashboardHeader({
 }) {
 	const processes = useProcessStore((s) => s.processes);
 	const onlineCount = useProcessStore((s) => s.onlineCount);
-	const totalCpu = useProcessStore((s) => s.totalCpu);
-	const totalMemory = useProcessStore((s) => s.totalMemory);
-	const cpuCount = useMetricsStore((s) => s.system?.cpuCount ?? 0);
 
 	const [aboutOpen, setAboutOpen] = useState(false);
 
@@ -62,16 +56,6 @@ export function DashboardHeader({
 								<span className="text-foreground font-medium">{onlineCount}</span>
 								<span className="text-muted-foreground">/{processes.length}</span>
 							</span>
-						</div>
-						{cpuCount > 0 && (
-						<div className="flex items-center gap-1.5">
-							<CpuCores totalCpu={totalCpu} coreCount={cpuCount} size="xs" />
-							<span className="text-foreground font-medium">{Math.ceil(totalCpu / 100)}/{cpuCount}</span>
-						</div>
-					)}
-						<div className={`flex items-center gap-1.5 ${isTg ? "" : "hidden sm:flex"}`}>
-							<HardDrive className="h-3 w-3" />
-							<span className="text-foreground font-medium">{formatBytes(totalMemory)}</span>
 						</div>
 					</div>
 				</div>
