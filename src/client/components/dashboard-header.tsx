@@ -38,6 +38,7 @@ export function DashboardHeader({
 	const isTg = isTelegramWebApp();
 
 	return (
+		<>
 		<header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
 			<div className={`mx-auto max-w-[1600px] flex items-center justify-between py-3 ${isTg ? "px-3" : "px-6"}`}>
 				{/* Left: Brand + Stats (compact in TG) */}
@@ -124,8 +125,9 @@ export function DashboardHeader({
 					)}
 				</div>
 			</div>
-			{aboutOpen && <AboutPopup onClose={() => setAboutOpen(false)} />}
-		</header>
+			</header>
+		{aboutOpen && <AboutPopup onClose={() => setAboutOpen(false)} />}
+		</>
 	);
 }
 
