@@ -1,6 +1,8 @@
 import { useMetricsStore } from "../stores/metrics-store";
+import { useProcessStore } from "../stores/process-store";
 import { formatBytes } from "../lib/utils";
-import { Cpu, HardDrive, Server, Clock } from "lucide-react";
+import { CpuCores } from "./cpu-cores";
+import { HardDrive, Server, Clock } from "lucide-react";
 
 function formatSystemUptime(seconds: number): string {
 	const days = Math.floor(seconds / 86400);
@@ -12,11 +14,11 @@ function formatSystemUptime(seconds: number): string {
 
 export function SystemBar() {
 	const system = useMetricsStore((s) => s.system);
+	const totalCpu = useProcessStore((s) => s.totalCpu);
 
 	if (!system) return null;
 
 	const memPercent = ((system.usedMemory / system.totalMemory) * 100).toFixed(0);
-	const loadPercent = ((system.loadAvg[0] / system.cpuCount) * 100).toFixed(0);
 
 	return (
 		<div className="border-b border-border/50 bg-background">
@@ -32,15 +34,9 @@ export function SystemBar() {
 
 			<div className="ml-auto flex items-center gap-4 text-[11px]">
 				<div className="flex items-center gap-1.5">
-					<Cpu className="h-3 w-3 text-muted-foreground" />
-					<span className="text-muted-foreground">Load</span>
-					<span className="text-foreground font-medium">{loadPercent}%</span>
-					<div className="h-1 w-16 rounded-full bg-muted overflow-hidden">
-						<div
-							className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-							style={{ width: `${Math.min(Number(loadPercent), 100)}%` }}
-						/>
-					</div>
+					<span className="text-muted-foreground">CPU</span>
+					<CpuCores totalCpu={totalCpu} coreCount={system.cpuCount} size="xs" />
+					<span className="text-foreground font-medium">{Math.ceil(totalCpu / 100)}/{system.cpuCount}</span>
 				</div>
 
 				<div className="flex items-center gap-1.5">

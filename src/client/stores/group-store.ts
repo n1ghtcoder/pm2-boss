@@ -2,6 +2,10 @@ import { create } from "zustand";
 import type { ProcessGroup } from "@shared/types";
 import { apiFetch } from "../lib/api-client";
 
+const isDemo =
+	new URLSearchParams(window.location.search).has("demo") ||
+	window.location.hostname.endsWith("github.io");
+
 interface GroupState {
 	groups: ProcessGroup[];
 	loading: boolean;
@@ -17,6 +21,7 @@ export const useGroupStore = create<GroupState>()((set, get) => ({
 	loading: false,
 
 	fetchGroups: async () => {
+		if (isDemo) return; // Groups pre-populated in demo mode
 		set({ loading: true });
 		try {
 			const res = await apiFetch<ProcessGroup[]>("/api/groups");
@@ -63,10 +68,10 @@ export const useGroupStore = create<GroupState>()((set, get) => ({
 		const group = get().groups.find((g) => g.id === id);
 		if (!group) return;
 		const collapsed = !group.collapsed;
-		// Optimistic update
 		set((s) => ({
 			groups: s.groups.map((g) => (g.id === id ? { ...g, collapsed } : g)),
 		}));
+		if (isDemo) return; // No API in demo mode
 		try {
 			await apiFetch(`/api/groups/${id}`, {
 				method: "PUT",

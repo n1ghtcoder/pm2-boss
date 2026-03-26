@@ -32,6 +32,10 @@ import { OverviewSkeleton, ConfigSkeleton, EnvSkeleton, Skeleton } from "./skele
 
 const EMPTY_METRICS: MetricsPoint[] = [];
 
+const isDemo =
+	new URLSearchParams(window.location.search).has("demo") ||
+	window.location.hostname.endsWith("github.io");
+
 type Tab = "overview" | "config" | "env" | "events" | "git" | "logs" | "console";
 
 export function ProcessDetailModal({
@@ -49,6 +53,17 @@ export function ProcessDetailModal({
 	// Fetch detail on mount + poll
 	useEffect(() => {
 		let mounted = true;
+
+		if (isDemo) {
+			import("../lib/demo-data").then(({ getDemoDetail }) => {
+				if (mounted) {
+					setDetail(getDemoDetail(pmId));
+					setLoading(false);
+				}
+			});
+			return () => { mounted = false; };
+		}
+
 		async function fetchDetail() {
 			try {
 				const res = await apiFetch<PM2ProcessDetail>(`/api/processes/${pmId}`);

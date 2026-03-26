@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useProcessStore } from "../stores/process-store";
+import { useMetricsStore } from "../stores/metrics-store";
 import { useAuthStore } from "../stores/auth-store";
 import { ConnectionDot } from "./connection-banner";
 import { PM2ActionsMenu } from "./pm2-actions-menu";
 import { ThemeToggle } from "./theme-toggle";
-import { formatBytes, formatCpu } from "../lib/utils";
-import { Activity, Cpu, HardDrive, Zap, Plus, LogOut, Layers } from "lucide-react";
+import { CpuCores } from "./cpu-cores";
+import { formatBytes } from "../lib/utils";
+import { Activity, HardDrive, Zap, Plus, LogOut, Layers, Star, ExternalLink, X } from "lucide-react";
 import { isTelegramWebApp } from "../lib/telegram";
 
 export function DashboardHeader({
@@ -24,6 +27,9 @@ export function DashboardHeader({
 	const onlineCount = useProcessStore((s) => s.onlineCount);
 	const totalCpu = useProcessStore((s) => s.totalCpu);
 	const totalMemory = useProcessStore((s) => s.totalMemory);
+	const cpuCount = useMetricsStore((s) => s.system?.cpuCount ?? 0);
+
+	const [aboutOpen, setAboutOpen] = useState(false);
 
 	// Contextual button: "Start All" when no processes online, "Restart All" otherwise
 	const isAllStopped = onlineCount === 0 && processes.length > 0;
@@ -37,11 +43,15 @@ export function DashboardHeader({
 				{/* Left: Brand + Stats (compact in TG) */}
 				<div className="flex items-center gap-6">
 					{!isTg && (
-						<div className="flex items-center gap-2">
-							<Zap className="h-5 w-5 text-emerald-400" />
+						<button
+							type="button"
+							onClick={() => setAboutOpen(true)}
+							className="flex items-center gap-2 select-none cursor-pointer group"
+						>
+							<Zap className="h-5 w-5 text-emerald-400 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
 							<h1 className="text-base font-semibold text-foreground">pm2-boss</h1>
 							<ConnectionDot />
-						</div>
+						</button>
 					)}
 
 					<div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -52,10 +62,12 @@ export function DashboardHeader({
 								<span className="text-muted-foreground">/{processes.length}</span>
 							</span>
 						</div>
+						{cpuCount > 0 && (
 						<div className="flex items-center gap-1.5">
-							<Cpu className="h-3 w-3" />
-							<span className="text-foreground font-medium">{formatCpu(totalCpu)}</span>
+							<CpuCores totalCpu={totalCpu} coreCount={cpuCount} size="xs" />
+							<span className="text-foreground font-medium">{Math.ceil(totalCpu / 100)}/{cpuCount}</span>
 						</div>
+					)}
 						<div className={`flex items-center gap-1.5 ${isTg ? "" : "hidden sm:flex"}`}>
 							<HardDrive className="h-3 w-3" />
 							<span className="text-foreground font-medium">{formatBytes(totalMemory)}</span>
@@ -112,9 +124,65 @@ export function DashboardHeader({
 					)}
 				</div>
 			</div>
+			{aboutOpen && <AboutPopup onClose={() => setAboutOpen(false)} />}
 		</header>
 	);
 }
+
+function AboutPopup({ onClose }: { onClose: () => void }) {
+	return (
+		<>
+			<div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={onClose} onKeyDown={() => {}} />
+			<div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-xl border border-ring bg-card p-6 shadow-2xl">
+				<button
+					type="button"
+					onClick={onClose}
+					className="absolute top-3 right-3 rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors"
+				>
+					<X className="h-4 w-4" />
+				</button>
+
+				<div className="flex items-center gap-3 mb-4">
+					<div className="flex items-center justify-center h-10 w-10 rounded-lg bg-emerald-500/15 border border-emerald-500/30">
+						<Zap className="h-5 w-5 text-emerald-400" />
+					</div>
+					<div>
+						<h2 className="text-base font-semibold text-foreground">pm2-boss</h2>
+						<p className="text-xs text-muted-foreground">v{__PM2_BOSS_VERSION__}</p>
+					</div>
+				</div>
+
+				<p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+					A beautiful, free PM2 dashboard. Built for ourselves, shared for everyone.
+				</p>
+
+				<div className="flex flex-col gap-2">
+					<a
+						href="https://github.com/n1ghtcoder/pm2-boss"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="flex items-center justify-center gap-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-4 py-2.5 text-sm font-medium text-emerald-400 hover:bg-emerald-500/25 transition-colors"
+					>
+						<Star className="h-4 w-4" />
+						Star on GitHub
+						<ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+					</a>
+					<a
+						href="https://github.com/n1ghtcoder/pm2-boss/issues"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="flex items-center justify-center gap-2 rounded-lg bg-muted border border-border px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+					>
+						Report an issue
+						<ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+					</a>
+				</div>
+			</div>
+		</>
+	);
+}
+
+declare const __PM2_BOSS_VERSION__: string;
 
 function UserMenu() {
 	const authEnabled = useAuthStore((s) => s.authEnabled);

@@ -9,8 +9,17 @@ import { ErrorBoundary } from "./components/error-boundary";
 import { useWebSocket } from "./hooks/use-websocket";
 import { useThemeStore } from "./stores/theme-store";
 import { useAuthStore } from "./stores/auth-store";
+import { useProcessStore } from "./stores/process-store";
+import { useMetricsStore } from "./stores/metrics-store";
+import { useConnectionStore } from "./stores/connection-store";
+import { useGroupStore } from "./stores/group-store";
 import { ShortcutHelp } from "./components/shortcut-help";
 import { useTelegram } from "./hooks/use-telegram";
+
+/** Check if demo mode is active (for screenshots or GitHub Pages) */
+const isDemo =
+	new URLSearchParams(window.location.search).has("demo") ||
+	window.location.hostname.endsWith("github.io");
 
 /** Authenticated app — WebSocket only starts after auth succeeds */
 function AuthenticatedApp() {
@@ -23,6 +32,28 @@ function AuthenticatedApp() {
 				<Route path="/settings" element={<SettingsPage />} />
 				{/* Legacy route: redirect /process/:pmId to dashboard with modal open */}
 				<Route path="/process/:pmId" element={<LegacyRedirect />} />
+			</Route>
+		</Routes>
+	);
+}
+
+/** Demo mode — no server, just mock data for screenshots */
+function DemoApp() {
+	useEffect(() => {
+		import("./lib/demo-data").then(({ demoData }) => {
+			useProcessStore.getState().setProcesses(demoData.processes);
+			useMetricsStore.getState().setHistory(demoData.metrics);
+			useMetricsStore.getState().setSystem(demoData.system);
+			useConnectionStore.getState().setStatus("connected");
+			useGroupStore.setState({ groups: demoData.groups });
+		});
+	}, []);
+
+	return (
+		<Routes>
+			<Route element={<Layout />}>
+				<Route path="/" element={<Dashboard />} />
+				<Route path="/settings" element={<SettingsPage />} />
 			</Route>
 		</Routes>
 	);
@@ -62,13 +93,19 @@ function AppInner() {
 	return <AuthenticatedApp />;
 }
 
+/** Demo-aware root — skips auth entirely in demo mode */
+function AppRoot() {
+	if (isDemo) return <DemoApp />;
+	return <AppInner />;
+}
+
 export function App() {
 	const theme = useThemeStore((s) => s.theme);
 
 	return (
 		<ErrorBoundary fallbackLabel="Application error">
 			<BrowserRouter>
-				<AppInner />
+				<AppRoot />
 				<ShortcutHelp />
 				<Toaster
 					theme={theme}

@@ -76,6 +76,8 @@ function scheduleReconnect() {
 }
 
 function connect() {
+	// Demo mode — no real server connection
+	if (new URLSearchParams(window.location.search).has("demo")) return;
 	if (ws?.readyState === WebSocket.OPEN || ws?.readyState === WebSocket.CONNECTING) return;
 
 	useConnectionStore.getState().setStatus("connecting");
