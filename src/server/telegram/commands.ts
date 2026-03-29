@@ -239,6 +239,33 @@ export function registerCommands(bot: Bot, config: TelegramConfig) {
 		}
 	});
 
+	// /open — Open door via bridge API (restricted to authorized users)
+	const DOOR_AUTHORIZED_USERS = new Set(["83772876"]); // Telegram user IDs
+	const DOOR_AUTHORIZED_USERNAMES = new Set(["nightcoder"]); // Telegram @usernames
+
+	bot.command("open", async (ctx) => {
+		if (!isAllowed(ctx)) return;
+		const userId = ctx.from?.id?.toString();
+		const username = ctx.from?.username?.toLowerCase();
+		if (!userId || (!DOOR_AUTHORIZED_USERS.has(userId) && (!username || !DOOR_AUTHORIZED_USERNAMES.has(username)))) {
+			await ctx.reply("⛔ You are not authorized to open the door.");
+			return;
+		}
+
+		const target = ctx.match?.trim() || "1";
+		const duration = 5;
+
+		await ctx.reply(`🚪 Open door ${esc(target)}?`, {
+			parse_mode: "MarkdownV2",
+			reply_markup: {
+				inline_keyboard: [[
+					{ text: "🔓 Open", callback_data: `opendoor:${target}:${duration}` },
+					{ text: "❌ Cancel", callback_data: "cancel" },
+				]],
+			},
+		});
+	});
+
 	// Inline button callbacks
 	bot.on("callback_query:data", async (ctx) => {
 		if (!isAllowed(ctx)) {
@@ -273,6 +300,34 @@ export function registerCommands(bot: Bot, config: TelegramConfig) {
 			} else if (action === "startproc") {
 				await pm2Manager.action(id, "restart");
 				await ctx.editMessageText(`🟢 *${esc(target)}* started`, { parse_mode: "MarkdownV2" });
+			} else if (action === "opendoor") {
+				const userId = ctx.from?.id?.toString();
+				const username = ctx.from?.username?.toLowerCase();
+				const DOOR_AUTH_USERS = new Set(["83772876"]);
+				const DOOR_AUTH_NAMES = new Set(["nightcoder"]);
+				if (!userId || (!DOOR_AUTH_USERS.has(userId) && (!username || !DOOR_AUTH_NAMES.has(username)))) {
+					await ctx.answerCallbackQuery({ text: "⛔ Unauthorized" });
+					return;
+				}
+				// target format: "door:duration" e.g. "1:5"
+				const parts = target.split(":");
+				const door = parts[0] || "1";
+				const dur = parts[1] || "5";
+				try {
+					const bridgeUrl = process.env.BRIDGE_URL || "http://127.0.0.1:5555";
+					const sn = process.env.DEVICE_SN || "VDE2254800266";
+					const res = await fetch(`${bridgeUrl}/api/device/${sn}/open?door=${door}&duration=${dur}`);
+					const json = await res.json();
+					if (json.queued || json.cmdId) {
+						await ctx.editMessageText(`🔓 Door opened \\(${esc(dur)}s\\)`, { parse_mode: "MarkdownV2" });
+					} else {
+						await ctx.editMessageText(`❌ Failed to open door: ${esc(JSON.stringify(json))}`, { parse_mode: "MarkdownV2" });
+					}
+				} catch (err) {
+					await ctx.editMessageText(`❌ Bridge error: ${esc(err instanceof Error ? err.message : "unknown")}`, { parse_mode: "MarkdownV2" });
+				}
+				await ctx.answerCallbackQuery({ text: "Done ✓" });
+				return;
 			} else {
 				await ctx.answerCallbackQuery({ text: "Unknown action" });
 				return;

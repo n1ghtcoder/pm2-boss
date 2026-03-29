@@ -85,6 +85,7 @@ export async function startTelegramBot(
 	// Set bot commands menu
 	await bot.api.setMyCommands([
 		{ command: "status", description: "Show all processes" },
+		{ command: "open", description: "Open door" },
 		{ command: "restart", description: "Restart a process" },
 		{ command: "stop", description: "Stop a process" },
 		{ command: "logs", description: "Show recent logs" },
